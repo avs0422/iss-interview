@@ -1,113 +1,116 @@
 # Solution Documentation
 
-**Candidate Name:** [Your Name]  
-**Completion Date:** [Date]
+**Candidate Name:** Anubhav Singh
+**Completion Date:** 21 April 2026
 
 ---
 
 ## Problems Identified
 
-_Describe the issues you found in the original implementation. Consider aspects like:_
-- Architecture and design patterns
-- Code quality and maintainability
-- Security vulnerabilities
-- Performance concerns
-- Testing gaps
+The original implementation worked but had several production-readiness issues:
 
-[Your analysis here]
-
----
+- The controller instantiated `TodoService` directly instead of using dependency injection.
+- Business logic and data access concerns were mixed together.
+- SQL statements were built with string interpolation, creating SQL injection and correctness risks.
+- API routes were action-based (`createTodo`, `getTodo`) and used POST even for reads and deletes.
+- Error handling returned raw exception messages as bad requests.
+- Tests were tightly coupled to the real SQLite database and depended on shared state and hardcoded IDs.
+- All test cases were not covered.
 
 ## Architectural Decisions
 
-_Explain the architecture you chose and why. Consider:_
-- Design patterns applied
-- Project structure changes
-- Technology choices
-- Separation of concerns
+I refactored the solution into a lightweight layered architecture:
 
-[Your decisions here]
+- Controllers: HTTP routing and response mapping.
+- Services: application behavior and coordination.
+- Repositories: SQLite persistence logic.
+- Contracts: request validation and API contract isolation.
+- Startup configuration: dependency injection and database initialization.
 
----
+I chose this design because it improves separation of concerns and testability without introducing unnecessary complexity for a small CRUD API.
 
 ## Trade-offs
 
-_Discuss compromises you made and the reasoning behind them. Consider:_
-- What did you prioritize?
-- What did you defer or simplify?
-- What alternatives did you consider?
-
-[Your trade-offs here]
-
----
+I kept the solution as a single API project plus a test project rather than splitting it into many assemblies. This keeps the exercise practical while still applying clean boundaries inside the project.
 
 ## How to Run
 
 ### Prerequisites
-[List required software, versions, etc.]
+- .NET 8 SDK
 
 ### Build
 ```bash
-# Add your build commands
+dotnet build
 ```
 
 ### Run
 ```bash
-# Add your run commands
+dotnet run --project TodoApi
 ```
 
 ### Test
 ```bash
-# Add your test commands
+dotnet test
 ```
-
----
 
 ## API Documentation
 
-### Endpoints
-
-#### Create TODO
-```
-Method: [HTTP method]
-URL: [endpoint]
-Request Body: [example]
-Response: [example]
+### Create TODO
+```http
+POST /api/todos
+Content-Type: application/json
 ```
 
-#### Get TODO(s)
-```
-Method: [HTTP method]
-URL: [endpoint]
-Request: [example]
-Response: [example]
-```
-
-#### Update TODO
-```
-Method: [HTTP method]
-URL: [endpoint]
-Request Body: [example]
-Response: [example]
+```json
+{
+  "title": "Buy milk",
+  "description": "2 liters",
+  "isCompleted": false
+}
 ```
 
-#### Delete TODO
-```
-Method: [HTTP method]
-URL: [endpoint]
-Request: [example]
-Response: [example]
+Response: `201 Created`
+
+### Get all TODOs
+```http
+GET /api/todos
 ```
 
----
+Response: `200 OK`
+
+### Get TODO by id
+```http
+GET /api/todos/1
+```
+
+Response: `200 OK` or `404 Not Found`
+
+### Update TODO
+```http
+PUT /api/todos/1
+Content-Type: application/json
+```
+
+```json
+{
+  "title": "Buy milk and bread",
+  "description": "From local store",
+  "isCompleted": true
+}
+```
+
+Response: `200 OK` or `404 Not Found`
+
+### Delete TODO
+```http
+DELETE /api/todos/1
+```
+
+Response: `204 No Content` or `404 Not Found`
 
 ## Future Improvements
 
-_What would you do if you had more time? Consider:_
-- Additional features
-- Performance optimizations
-- Enhanced testing
-- Better documentation
-- Deployment considerations
-
-[Your ideas here]
+- Add integration tests.
+- Add pagination and filtering for large todo lists.
+- Add structured logging and centralized exception middleware with `ProblemDetails`.
+- Add authentication and user ownership if this becomes a multi-user API.
