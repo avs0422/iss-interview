@@ -1,4 +1,8 @@
-using Microsoft.Data.Sqlite;
+using TodoApi.Infrastructure;
+using TodoApi.Infrastructure.Interface;
+using TodoApi.Repositories;
+using TodoApi.Repository;
+using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +12,17 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton<ITodoRepository, TodoRepository>();
+builder.Services.AddScoped<ITodoService, TodoService>();
+builder.Services.AddScoped<IDatabaseInitializer, SqliteDatabaseInitializer>();
+
 var app = builder.Build();
 
-InitializeDatabase();
+using (var scope = app.Services.CreateScope())
+{
+    var initializer = scope.ServiceProvider.GetRequiredService<IDatabaseInitializer>();
+    await initializer.InitializeAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -27,23 +39,3 @@ app.MapControllers();
 
 app.Run();
 
-void InitializeDatabase()
-{
-    var connectionString = "Data Source=todos.db";
-    using var connection = new SqliteConnection(connectionString);
-    connection.Open();
-
-    var command = connection.CreateCommand();
-    command.CommandText = @"
-        CREATE TABLE IF NOT EXISTS Todos (
-            Id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Title TEXT NOT NULL,
-            Description TEXT,
-            IsCompleted INTEGER NOT NULL DEFAULT 0,
-            CreatedAt TEXT NOT NULL
-        )
-    ";
-    command.ExecuteNonQuery();
-
-    Console.WriteLine("Database initialized successfully");
-}
